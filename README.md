@@ -1,6 +1,6 @@
 # OpenCode Go Pool
 
-管理多个 [opencode.ai](https://opencode.ai) 账号的池化工具。定时抓取每个账号的配额和用量，并将有效账号的 API Key 自动同步到 [ClipProxyAPI (CPA)](https://github.com/ioll/clip-proxy-api) 实现多账号负载均衡。
+管理多个 [opencode.ai](https://opencode.ai) 账号的池化工具。定时抓取每个账号的配额和用量，并将有效账号的 API Key 自动同步到 [CLIProxyAPI (CPA)](https://github.com/router-for-me/CLIProxyAPI) 实现多账号负载均衡。
 
 编译产物为单个 Go 二进制文件，内嵌 React 管理界面，无需额外依赖，开箱即用。
 
