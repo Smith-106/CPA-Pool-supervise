@@ -42,7 +42,7 @@ func (s *SQLiteStore) Close() error {
 
 // --- Accounts ---
 
-const accountColumns = `id, email, cookie, workspace_id, api_key, status, status_msg, limit_rolling, limit_weekly, limit_monthly, limit_exceeded, created_at, updated_at`
+const accountColumns = `id, type, email, cookie, workspace_id, api_key, status, status_msg, limit_rolling, limit_weekly, limit_monthly, limit_exceeded, created_at, updated_at`
 
 func (s *SQLiteStore) ListAccounts(ctx context.Context) ([]model.Account, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT `+accountColumns+` FROM accounts ORDER BY created_at DESC`)
@@ -65,7 +65,7 @@ func (s *SQLiteStore) ListActiveAccounts(ctx context.Context) ([]model.Account, 
 func (s *SQLiteStore) GetAccount(ctx context.Context, id string) (*model.Account, error) {
 	row := s.db.QueryRowContext(ctx, `SELECT `+accountColumns+` FROM accounts WHERE id = ?`, id)
 	acc := &model.Account{}
-	err := row.Scan(&acc.ID, &acc.Email, &acc.Cookie, &acc.WorkspaceID, &acc.APIKey, &acc.Status, &acc.StatusMsg,
+	err := row.Scan(&acc.ID, &acc.Type, &acc.Email, &acc.Cookie, &acc.WorkspaceID, &acc.APIKey, &acc.Status, &acc.StatusMsg,
 		&acc.LimitRolling, &acc.LimitWeekly, &acc.LimitMonthly, &acc.LimitExceeded, &acc.CreatedAt, &acc.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -75,16 +75,16 @@ func (s *SQLiteStore) GetAccount(ctx context.Context, id string) (*model.Account
 
 func (s *SQLiteStore) CreateAccount(ctx context.Context, acc *model.Account) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO accounts (id, email, cookie, workspace_id, api_key, status, status_msg, limit_rolling, limit_weekly, limit_monthly, limit_exceeded, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		acc.ID, acc.Email, acc.Cookie, acc.WorkspaceID, acc.APIKey, acc.Status, acc.StatusMsg,
+		`INSERT INTO accounts (id, type, email, cookie, workspace_id, api_key, status, status_msg, limit_rolling, limit_weekly, limit_monthly, limit_exceeded, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		acc.ID, acc.Type, acc.Email, acc.Cookie, acc.WorkspaceID, acc.APIKey, acc.Status, acc.StatusMsg,
 		acc.LimitRolling, acc.LimitWeekly, acc.LimitMonthly, acc.LimitExceeded, acc.CreatedAt, acc.UpdatedAt)
 	return err
 }
 
 func (s *SQLiteStore) UpdateAccount(ctx context.Context, acc *model.Account) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE accounts SET email = ?, cookie = ?, workspace_id = ?, api_key = ?, status = ?, status_msg = ?, limit_rolling = ?, limit_weekly = ?, limit_monthly = ?, updated_at = ? WHERE id = ?`,
-		acc.Email, acc.Cookie, acc.WorkspaceID, acc.APIKey, acc.Status, acc.StatusMsg,
+		`UPDATE accounts SET type = ?, email = ?, cookie = ?, workspace_id = ?, api_key = ?, status = ?, status_msg = ?, limit_rolling = ?, limit_weekly = ?, limit_monthly = ?, updated_at = ? WHERE id = ?`,
+		acc.Type, acc.Email, acc.Cookie, acc.WorkspaceID, acc.APIKey, acc.Status, acc.StatusMsg,
 		acc.LimitRolling, acc.LimitWeekly, acc.LimitMonthly, time.Now().UTC(), acc.ID)
 	return err
 }
@@ -393,11 +393,37 @@ func scanAccounts(rows *sql.Rows) ([]model.Account, error) {
 	var accounts []model.Account
 	for rows.Next() {
 		var acc model.Account
-		if err := rows.Scan(&acc.ID, &acc.Email, &acc.Cookie, &acc.WorkspaceID, &acc.APIKey, &acc.Status, &acc.StatusMsg,
+		if err := rows.Scan(&acc.ID, &acc.Type, &acc.Email, &acc.Cookie, &acc.WorkspaceID, &acc.APIKey, &acc.Status, &acc.StatusMsg,
 			&acc.LimitRolling, &acc.LimitWeekly, &acc.LimitMonthly, &acc.LimitExceeded, &acc.CreatedAt, &acc.UpdatedAt); err != nil {
 			return nil, err
 		}
 		accounts = append(accounts, acc)
 	}
 	return accounts, rows.Err()
+}
+
+// --- Ollama usage ---
+
+func (s *SQLiteStore) SaveOllamaUsage(ctx context.Context, u *model.OllamaUsage) error {
+	models, _ := json.Marshal(u.Models)
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO ollama_usage (account_id, monthly_percent, models_json, scraped_at) VALUES (?, ?, ?, ?)`,
+		u.AccountID, u.MonthlyPercent, string(models), u.ScrapedAt)
+	return err
+}
+
+func (s *SQLiteStore) GetLatestOllamaUsage(ctx context.Context, accountID string) (*model.OllamaUsage, error) {
+	row := s.db.QueryRowContext(ctx,
+		`SELECT account_id, monthly_percent, models_json, scraped_at FROM ollama_usage WHERE account_id = ? ORDER BY scraped_at DESC LIMIT 1`, accountID)
+	u := &model.OllamaUsage{}
+	var modelsJSON string
+	err := row.Scan(&u.AccountID, &u.MonthlyPercent, &modelsJSON, &u.ScrapedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	_ = json.Unmarshal([]byte(modelsJSON), &u.Models)
+	return u, nil
 }

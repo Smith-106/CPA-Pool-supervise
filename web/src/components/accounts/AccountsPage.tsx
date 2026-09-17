@@ -92,7 +92,8 @@ export function AccountsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Type</TableHead>
+                <TableHead>Email</TableHead>
                   <TableHead>Workspace</TableHead>
                   <TableHead>API Key</TableHead>
                   <TableHead>Status</TableHead>

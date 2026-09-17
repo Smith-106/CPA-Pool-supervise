@@ -81,13 +81,16 @@ func (s *Syncer) Sync(ctx context.Context) error {
 		}
 	}
 
-	var keys []model.CPAKeyEntry
+	var opencodeKeys, ollamaKeys []model.CPAKeyEntry
 	for _, acc := range accounts {
-		if acc.APIKey != "" {
-			keys = append(keys, model.CPAKeyEntry{
-				APIKey:    acc.APIKey,
-				AuthIndex: existingAuthIndex[acc.APIKey],
-			})
+		if acc.APIKey == "" {
+			continue
+		}
+		entry := model.CPAKeyEntry{APIKey: acc.APIKey, AuthIndex: existingAuthIndex[acc.APIKey]}
+		if acc.Type == "ollama" {
+			ollamaKeys = append(ollamaKeys, entry)
+		} else {
+			opencodeKeys = append(opencodeKeys, entry)
 		}
 	}
 
@@ -99,12 +102,28 @@ func (s *Syncer) Sync(ctx context.Context) error {
 	ownProvider := model.CPAProvider{
 		Name:          settings.ProviderName,
 		BaseURL:       settings.BaseURL,
-		APIKeyEntries: keys,
+		APIKeyEntries: opencodeKeys,
 		Disabled:      false,
 		Models:        models,
 	}
 
 	merged := mergeProvider(remote, ownProvider)
+
+	// Ollama accounts are synced to a separate provider so they never
+	// share the OpenCode credential pool.
+	if settings.OllamaProviderName != "" {
+		ollamaModels := make([]model.CPAModel, len(settings.OllamaModels))
+		for i, m := range settings.OllamaModels {
+			ollamaModels[i] = model.CPAModel{Name: m}
+		}
+		merged = mergeProvider(merged, model.CPAProvider{
+			Name:          settings.OllamaProviderName,
+			BaseURL:       settings.OllamaBaseURL,
+			APIKeyEntries: ollamaKeys,
+			Disabled:      false,
+			Models:        ollamaModels,
+		})
+	}
 
 	body, err := json.Marshal(merged)
 	if err != nil {
@@ -120,7 +139,7 @@ func (s *Syncer) Sync(ctx context.Context) error {
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		s.logSync(ctx, "error", err.Error(), len(keys))
+		s.logSync(ctx, "error", err.Error(), len(opencodeKeys))
 		return fmt.Errorf("http request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -129,12 +148,12 @@ func (s *Syncer) Sync(ctx context.Context) error {
 
 	if resp.StatusCode >= 400 {
 		msg := fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(respBody))
-		s.logSync(ctx, "error", msg, len(keys))
+		s.logSync(ctx, "error", msg, len(opencodeKeys))
 		return fmt.Errorf("%s", msg)
 	}
 
-	s.logSync(ctx, "success", string(respBody), len(keys))
-	slog.Info("CPA sync success", "keys", len(keys), "models", len(models))
+	s.logSync(ctx, "success", string(respBody), len(opencodeKeys)+len(ollamaKeys))
+	slog.Info("CPA sync success", "keys", len(opencodeKeys)+len(ollamaKeys), "models", len(models))
 	return nil
 }
 

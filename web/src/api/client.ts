@@ -38,7 +38,7 @@ export const api = {
   accounts: {
     list: () => request<Account[]>('/accounts'),
     get: (id: string) => request<Account>(`/accounts/${id}`),
-    create: (data: { email: string; cookie: string; workspace_id: string; api_key: string }) =>
+    create: (data: { type: 'opencode' | 'ollama'; email: string; cookie?: string; workspace_id?: string; api_key: string; limit_rolling?: number | null; limit_weekly?: number | null; limit_monthly?: number | null }) =>
       request<Account>('/accounts', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Account>) =>
       request<Account>(`/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

@@ -4,6 +4,7 @@ import "time"
 
 type Account struct {
 	ID            string    `json:"id"`
+	Type          string    `json:"type"` // "opencode" or "ollama"; empty is treated as "opencode"
 	Email         string    `json:"email"`
 	Cookie        string    `json:"cookie,omitempty"`
 	WorkspaceID   string    `json:"workspace_id"`

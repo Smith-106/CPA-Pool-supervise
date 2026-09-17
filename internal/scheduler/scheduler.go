@@ -98,6 +98,10 @@ func (s *Scheduler) ScrapeOne(ctx context.Context, accountID string) error {
 }
 
 func (s *Scheduler) scrapeOne(ctx context.Context, acc model.Account) {
+	if acc.Type == "ollama" {
+		s.scrapeOllamaOne(ctx, acc)
+		return
+	}
 	quota, err := s.scraper.FetchQuota(acc.Cookie, acc.WorkspaceID)
 	if err != nil {
 		slog.Error("scrape quota failed", "account", acc.ID, "error", err)
@@ -208,4 +212,42 @@ func (s *Scheduler) fetchHistory(ctx context.Context, acc model.Account) {
 	if bootstrapped == "" && allOK {
 		_ = s.store.SetSetting(ctx, bootstrapKey, "1")
 	}
+}
+
+// scrapeOllamaOne polls the Ollama usage endpoint for one account. Unlike
+// OpenCode accounts, Ollama keys are reachable with the API key alone (no
+// cookie or workspace ID needed) and expose only a monthly quota window.
+func (s *Scheduler) scrapeOllamaOne(ctx context.Context, acc model.Account) {
+	u, err := s.scraper.FetchOllamaUsage(acc.APIKey)
+	if err != nil {
+		slog.Error("scrape ollama usage failed", "account", acc.ID, "error", err)
+		s.store.UpdateAccountStatus(ctx, acc.ID, "error", err.Error())
+		return
+	}
+
+	u.AccountID = acc.ID
+	if err := s.store.SaveOllamaUsage(ctx, u); err != nil {
+		slog.Error("save ollama usage", "account", acc.ID, "error", err)
+	}
+
+	// Ollama exposes a single monthly quota; rolling/weekly are not reported.
+	exceeded := false
+	if acc.LimitMonthly != nil && u.MonthlyPercent >= *acc.LimitMonthly {
+		exceeded = true
+	}
+	if exceeded != acc.LimitExceeded {
+		if err := s.store.UpdateAccountLimitExceeded(ctx, acc.ID, exceeded); err != nil {
+			slog.Error("update limit_exceeded", "account", acc.ID, "error", err)
+		} else {
+			go s.cpa.Sync(ctx)
+		}
+	}
+	if err := s.store.UpdateAccountStatus(ctx, acc.ID, "active", ""); err != nil {
+		slog.Error("update status", "account", acc.ID, "error", err)
+	}
+
+	slog.Info("ollama scrape complete", "account", acc.ID,
+		"monthly", u.MonthlyPercent,
+		"limitExceeded", exceeded,
+		"models", len(u.Models))
 }

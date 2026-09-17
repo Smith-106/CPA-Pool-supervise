@@ -27,11 +27,14 @@ type CPASyncLog struct {
 }
 
 type CPASettings struct {
-	Endpoint     string   `json:"endpoint"`
-	BearerToken  string   `json:"bearer_token"`
-	ProviderName string   `json:"provider_name"`
-	BaseURL      string   `json:"base_url"`
-	Models       []string `json:"models"`
+	Endpoint           string   `json:"endpoint"`
+	BearerToken        string   `json:"bearer_token"`
+	ProviderName       string   `json:"provider_name"`
+	BaseURL            string   `json:"base_url"`
+	Models             []string `json:"models"`
+	OllamaProviderName string   `json:"ollama_provider_name"`
+	OllamaBaseURL      string   `json:"ollama_base_url"`
+	OllamaModels       []string `json:"ollama_models"`
 }
 
 var DefaultCPAModels = []string{

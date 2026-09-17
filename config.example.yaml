@@ -14,3 +14,12 @@ cpa:
   bearer_token: "bearer-token-here"
   provider_name: "OpenCode Go"
   base_url: "https://opencode.ai/zen/go/v1"
+  # Ollama accounts sync to a separate provider (leave empty to skip).
+  ollama_provider_name: "Ollama"
+  ollama_base_url: "https://ollama.com/v1"
+  ollama_models:
+    - "glm-5.3-flash"
+    - "deepseek-v4.1-flash"
+    - "nemotron-3-nano:30b"
+    - "gemma4:31b"
+    - "gpt-oss:20b"

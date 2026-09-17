@@ -37,8 +37,11 @@ export function AccountCard({ account }: { account: AccountWithQuota }) {
       <div className="mb-4 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-foreground">{account.email}</p>
-          <div className="mt-1.5">
+          <div className="mt-1.5 flex items-center gap-1.5">
             <StatusBadge tone={meta.tone} label={meta.label} />
+            {account.type === 'ollama' && (
+              <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">Ollama</span>
+            )}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -94,7 +97,23 @@ export function AccountCard({ account }: { account: AccountWithQuota }) {
         </div>
       )}
 
-      {account.quota ? (
+      {account.type === 'ollama' ? (
+        account.ollama_usage ? (
+          <div className="space-y-3">
+            <QuotaBar
+              label="Monthly"
+              percent={account.ollama_usage.monthly_percent}
+              resetSec={0}
+              limit={account.limit_monthly}
+            />
+            <p className="mt-3 text-[10px] text-muted-foreground">
+              Updated: {new Date(account.ollama_usage.scraped_at).toLocaleString()}
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs italic text-muted-foreground">No usage data yet</p>
+        )
+      ) : account.quota ? (
         <div className="space-y-3">
           <QuotaBar
             label="Rolling"
@@ -119,7 +138,7 @@ export function AccountCard({ account }: { account: AccountWithQuota }) {
         <p className="text-xs italic text-muted-foreground">No quota data yet</p>
       )}
 
-      {account.quota && (
+      {account.type !== 'ollama' && account.quota && (
         <p className="mt-3 text-[10px] text-muted-foreground">
           Updated: {new Date(account.quota.scraped_at).toLocaleString()}
         </p>

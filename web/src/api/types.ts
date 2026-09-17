@@ -1,5 +1,6 @@
 export interface Account {
   id: string;
+  type: 'opencode' | 'ollama';
   email: string;
   cookie?: string;
   workspace_id: string;
@@ -29,8 +30,22 @@ export interface QuotaSnapshot {
   scraped_at: string;
 }
 
+export interface OllamaModelUsage {
+  name: string;
+  request_count: number;
+}
+
+export interface OllamaUsage {
+  id: string;
+  account_id: string;
+  monthly_percent: number;
+  models?: OllamaModelUsage[];
+  scraped_at: string;
+}
+
 export interface AccountWithQuota extends Account {
   quota?: QuotaSnapshot;
+  ollama_usage?: OllamaUsage;
 }
 
 export interface UsageRecord {

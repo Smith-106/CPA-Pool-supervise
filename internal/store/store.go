@@ -39,6 +39,10 @@ type Store interface {
 	GetCPASettings(ctx context.Context) (*model.CPASettings, error)
 	SaveCPASettings(ctx context.Context, settings *model.CPASettings) error
 
+	// Ollama usage
+	SaveOllamaUsage(ctx context.Context, u *model.OllamaUsage) error
+	GetLatestOllamaUsage(ctx context.Context, accountID string) (*model.OllamaUsage, error)
+
 	// Dashboard
 	ListAccountsWithQuota(ctx context.Context) ([]model.AccountWithQuota, error)
 

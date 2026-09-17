@@ -37,9 +37,10 @@ const limitField = z.preprocess(
 )
 
 const formSchema = z.object({
+  type: z.enum(['opencode', 'ollama']).default('opencode'),
   email: z.string().min(1, 'Email is required'),
-  cookie: z.string().min(1, 'Cookie is required'),
-  workspace_id: z.string().min(1, 'Workspace ID is required'),
+  cookie: z.string().optional(),
+  workspace_id: z.string().optional(),
   api_key: z.string().optional(),
   limit_rolling: limitField,
   limit_weekly: limitField,
@@ -59,12 +60,13 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: '', cookie: '', workspace_id: '', api_key: '', limit_rolling: undefined, limit_weekly: undefined, limit_monthly: undefined },
+    defaultValues: { type: 'opencode', email: '', cookie: '', workspace_id: '', api_key: '', limit_rolling: undefined, limit_weekly: undefined, limit_monthly: undefined },
   })
 
   useEffect(() => {
     if (open) {
       form.reset({
+        type: (account?.type as 'opencode' | 'ollama') ?? 'opencode',
         email: account?.email ?? '',
         cookie: account?.cookie ?? '',
         workspace_id: account?.workspace_id ?? '',
@@ -106,9 +108,40 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
+            onSubmit={form.handleSubmit((values) => {
+              if (values.type === 'ollama' && !values.api_key) {
+                form.setError('api_key', { message: 'Ollama API Key is required' })
+                return
+              }
+              if (values.type === 'opencode' && (!values.cookie || !values.workspace_id)) {
+                if (!values.cookie) form.setError('cookie', { message: 'Cookie is required' })
+                if (!values.workspace_id) form.setError('workspace_id', { message: 'Workspace ID is required' })
+                return
+              }
+              mutation.mutate(values)
+            })}
             className="space-y-4"
           >
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <FormControl>
+                    <select
+                      className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                      {...field}
+                    >
+                      <option value="opencode">OpenCode Go</option>
+                      <option value="ollama">Ollama</option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="email"
@@ -123,6 +156,7 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
               )}
             />
 
+            {form.watch('type') === 'opencode' && (
             <FormField
               control={form.control}
               name="cookie"
@@ -140,7 +174,9 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
                 </FormItem>
               )}
             />
+            )}
 
+            {form.watch('type') === 'opencode' && (
             <FormField
               control={form.control}
               name="workspace_id"
@@ -158,13 +194,14 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
                 </FormItem>
               )}
             />
+            )}
 
             <FormField
               control={form.control}
               name="api_key"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>API Key</FormLabel>
+                  <FormLabel>{form.watch('type') === 'ollama' ? 'Ollama API Key' : 'API Key'}</FormLabel>
                   <FormControl>
                     <Input className="font-mono" placeholder="sk-..." {...field} />
                   </FormControl>
@@ -179,8 +216,12 @@ export function AccountForm({ open, onOpenChange, account }: AccountFormProps) {
               <div className="grid grid-cols-3 gap-3">
                 {(
                   [
-                    { name: 'limit_rolling', label: 'Rolling (5h)' },
-                    { name: 'limit_weekly', label: 'Weekly' },
+                    ...(form.watch('type') === 'opencode'
+                      ? ([
+                          { name: 'limit_rolling', label: 'Rolling (5h)' },
+                          { name: 'limit_weekly', label: 'Weekly' },
+                        ] as const)
+                      : []),
                     { name: 'limit_monthly', label: 'Monthly' },
                   ] as const
                 ).map(({ name, label }) => (

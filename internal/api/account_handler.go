@@ -26,6 +26,7 @@ func (s *Server) handleListAccounts(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	var req struct {
+		Type         string `json:"type"`
 		Email        string `json:"email"`
 		Cookie       string `json:"cookie"`
 		WorkspaceID  string `json:"workspace_id"`
@@ -38,9 +39,16 @@ func (s *Server) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "invalid request", http.StatusBadRequest)
 		return
 	}
-	if req.Email == "" || req.Cookie == "" || req.WorkspaceID == "" {
-		jsonError(w, "email, cookie, and workspace_id are required", http.StatusBadRequest)
-		return
+	if req.Type == "ollama" {
+		if req.Email == "" || req.APIKey == "" {
+			jsonError(w, "email and api_key are required for ollama accounts", http.StatusBadRequest)
+			return
+		}
+	} else {
+		if req.Email == "" || req.Cookie == "" || req.WorkspaceID == "" {
+			jsonError(w, "email, cookie, and workspace_id are required", http.StatusBadRequest)
+			return
+		}
 	}
 	if err := validateLimits(req.LimitRolling, req.LimitWeekly, req.LimitMonthly); err != nil {
 		jsonError(w, err.Error(), http.StatusBadRequest)
@@ -50,6 +58,7 @@ func (s *Server) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	acc := &model.Account{
 		ID:           uuid.New().String(),
+		Type:         req.Type,
 		Email:        req.Email,
 		Cookie:       req.Cookie,
 		WorkspaceID:  req.WorkspaceID,
@@ -100,6 +109,7 @@ func (s *Server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
+		Type         *string `json:"type"`
 		Email        *string `json:"email"`
 		Cookie       *string `json:"cookie"`
 		WorkspaceID  *string `json:"workspace_id"`
@@ -117,6 +127,9 @@ func (s *Server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Type != nil {
+		acc.Type = *req.Type
+	}
 	if req.Email != nil {
 		acc.Email = *req.Email
 	}
