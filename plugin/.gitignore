@@ -1,0 +1,15 @@
+# Build outputs
+/dist/
+*.so
+*.h
+
+# Local plugin state and secrets
+settings.json
+*.cookie
+*.secret
+.env
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/

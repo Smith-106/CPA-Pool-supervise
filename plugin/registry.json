@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "plugins": [
+    {
+      "id": "cpa-pool-supervise",
+      "name": "CPA Pool Supervise",
+      "description": "OpenCode Go pooling + Ollama quota monitoring for CLIProxyAPI.",
+      "author": "Smith-106",
+      "version": "0.3.0",
+      "repository": "https://github.com/Smith-106/CPA-Pool-supervise",
+      "homepage": "https://github.com/Smith-106/CPA-Pool-supervise",
+      "license": "MIT",
+      "tags": [
+        "Scheduler",
+        "Management",
+        "Usage",
+        "OpenCode",
+        "Ollama"
+      ]
+    }
+  ]
+}

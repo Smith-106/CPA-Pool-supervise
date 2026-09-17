@@ -1,0 +1,48 @@
+# Relevant excerpts for CLIProxyAPI's config.yaml. Repeat each OpenCode Go
+# API key in both protocol sections so the plugin can pair them into one
+# quota-sharing logical account.
+
+save-cooldown-status: true
+
+routing:
+  strategy: round-robin
+  session-affinity: true
+  session-affinity-ttl: 24h
+
+openai-compatibility:
+  - name: opencode-go
+    base-url: https://opencode.ai/zen/go/v1
+    api-key-entries:
+      - api-key: YOUR_OPENCODE_GO_API_KEY_1
+      - api-key: YOUR_OPENCODE_GO_API_KEY_2
+
+claude-api-key:
+  - api-key: YOUR_OPENCODE_GO_API_KEY_1
+    base-url: https://opencode.ai/zen/go
+  - api-key: YOUR_OPENCODE_GO_API_KEY_2
+    base-url: https://opencode.ai/zen/go
+
+plugins:
+  enabled: true
+  # Add this source to install and update the plugin from CPA Manager Plus.
+  store-sources:
+    - https://raw.githubusercontent.com/Smith-106/CPA-Pool-supervise/main/registry.json
+  configs:
+    cpa-pool-supervise:
+      enabled: true
+      cpa-config-path: config.yaml
+      threshold-percent: 97
+      sticky-ttl: 24h
+      suspend-duration: 30m
+      fallback-cooldown: 10m
+      dashboard-refresh-interval: 3m
+      dashboard-stale-after: 20m
+
+      # Optional overrides are matched by API-key suffix. Dashboard polling
+      # can also be configured from the plugin's management page, which is
+      # preferable when you do not want workspace metadata in config.yaml.
+      # accounts:
+      #   - key-suffix: KEY_1
+      #     name: primary
+      #     workspace-id: wrk_REPLACE_ME
+      #     cookie-file: /CLIProxyAPI/secrets/opencode-go-primary.cookie
