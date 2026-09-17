@@ -125,7 +125,9 @@ func (s *Syncer) Sync(ctx context.Context) error {
 		})
 	}
 
-	body, err := json.Marshal(merged)
+	// CPA wraps the provider list: PUT body must mirror the GET shape
+	// {"openai-compatibility": [...]}.
+	body, err := json.Marshal(map[string][]model.CPAProvider{"openai-compatibility": merged})
 	if err != nil {
 		return fmt.Errorf("marshal payload: %w", err)
 	}

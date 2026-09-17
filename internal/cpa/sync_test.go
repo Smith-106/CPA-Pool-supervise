@@ -91,10 +91,11 @@ func TestSync_MergePreservesUnrelatedProviders(t *testing.T) {
 		t.Fatalf("Sync failed: %v", err)
 	}
 
-	var merged []model.CPAProvider
-	if err := json.Unmarshal(capturedPUTBody, &merged); err != nil {
+	var wrapped map[string][]model.CPAProvider
+	if err := json.Unmarshal(capturedPUTBody, &wrapped); err != nil {
 		t.Fatalf("decode PUT body: %v", err)
 	}
+	merged := wrapped["openai-compatibility"]
 	if len(merged) != 2 {
 		t.Fatalf("expected 2 providers in merged payload, got %d", len(merged))
 	}
@@ -134,10 +135,11 @@ func TestSync_FirstSyncWhenRemoteEmpty(t *testing.T) {
 		case http.MethodPut:
 			putCalled = true
 			buf, _ := io.ReadAll(r.Body)
-			var providers []model.CPAProvider
-			if err := json.Unmarshal(buf, &providers); err != nil {
+			var wrapped map[string][]model.CPAProvider
+			if err := json.Unmarshal(buf, &wrapped); err != nil {
 				t.Errorf("decode PUT body: %v", err)
 			}
+			providers := wrapped["openai-compatibility"]
 			if len(providers) != 1 {
 				t.Errorf("expected 1 provider, got %d", len(providers))
 			}
