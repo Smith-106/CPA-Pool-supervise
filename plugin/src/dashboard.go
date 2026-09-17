@@ -153,8 +153,35 @@ func atoi64(raw string) int64 {
 // pool lock must NOT be held; results are applied under the lock afterwards.
 func refreshAccount(p *pool, acct *account) {
 	p.mu.Lock()
+	apiKey := acct.apiKey
 	workspaceID, cookie, cookieFile := p.dashboardCredentials(acct)
 	p.mu.Unlock()
+
+	// API-key path: OpenCode Go exposes /zen/go/v1/usage with Bearer auth.
+	// When the account has an API key, try it first — JSON is more reliable
+	// than scraping the dashboard HTML.
+	if apiKey != "" {
+		if usage, err := fetchOpenCodeUsageByAPIKey(apiKey); err == nil && usage != nil {
+			now := time.Now()
+			p.mu.Lock()
+			st := p.stateFor(acct)
+			st.DashboardRefreshedAt = now
+			st.DashboardError = ""
+			st.Windows[windowFiveHour].UsagePercent = usage.FiveHour.UsagePercent
+			st.Windows[windowFiveHour].ResetAt = now.Add(time.Duration(usage.FiveHour.ResetInSec) * time.Second)
+			st.Windows[windowFiveHour].UpdatedAt = now
+			st.Windows[windowWeekly].UsagePercent = usage.Weekly.UsagePercent
+			st.Windows[windowWeekly].ResetAt = now.Add(time.Duration(usage.Weekly.ResetInSec) * time.Second)
+			st.Windows[windowWeekly].UpdatedAt = now
+			st.Windows[windowMonthly].UsagePercent = usage.Monthly.UsagePercent
+			st.Windows[windowMonthly].ResetAt = now.Add(time.Duration(usage.Monthly.ResetInSec) * time.Second)
+			st.Windows[windowMonthly].UpdatedAt = now
+			p.mu.Unlock()
+			return
+		}
+		// API key rejected or endpoint unavailable — fall through to cookie path.
+	}
+
 	if workspaceID == "" {
 		applyDashboardError(p, acct, "workspace ID is not configured")
 		return

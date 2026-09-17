@@ -102,6 +102,13 @@ func (s *Scheduler) scrapeOne(ctx context.Context, acc model.Account) {
 		s.scrapeOllamaOne(ctx, acc)
 		return
 	}
+	// API-key path first: JSON endpoint, no cookie needed.
+	if acc.APIKey != "" {
+		if quota, err := s.scraper.FetchQuotaByAPIKey(acc.APIKey); err == nil && quota != nil {
+			s.applyQuotaResult(ctx, acc, quota)
+			return
+		}
+	}
 	quota, err := s.scraper.FetchQuota(acc.Cookie, acc.WorkspaceID)
 	if err != nil {
 		slog.Error("scrape quota failed", "account", acc.ID, "error", err)
@@ -109,6 +116,10 @@ func (s *Scheduler) scrapeOne(ctx context.Context, acc model.Account) {
 		return
 	}
 
+	s.applyQuotaResult(ctx, acc, quota)
+}
+
+func (s *Scheduler) applyQuotaResult(ctx context.Context, acc model.Account, quota *model.QuotaSnapshot) {
 	quota.AccountID = acc.ID
 	if err := s.store.SaveQuotaSnapshot(ctx, quota); err != nil {
 		slog.Error("save quota snapshot", "account", acc.ID, "error", err)
