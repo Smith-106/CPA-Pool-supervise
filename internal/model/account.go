@@ -21,5 +21,6 @@ type Account struct {
 
 type AccountWithQuota struct {
 	Account
-	Quota *QuotaSnapshot `json:"quota,omitempty"`
+	Quota       *QuotaSnapshot `json:"quota,omitempty"`
+	OllamaUsage *OllamaUsage   `json:"ollama_usage,omitempty"`
 }

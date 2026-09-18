@@ -378,6 +378,15 @@ func (s *SQLiteStore) ListAccountsWithQuota(ctx context.Context) ([]model.Accoun
 	result := make([]model.AccountWithQuota, len(accounts))
 	for i, acc := range accounts {
 		result[i] = model.AccountWithQuota{Account: acc}
+		if acc.Type == "ollama" {
+			// Ollama accounts report monthly usage from /api/usage, not the
+			// OpenCode dashboard quota snapshots.
+			usage, err := s.GetLatestOllamaUsage(ctx, acc.ID)
+			if err == nil {
+				result[i].OllamaUsage = usage
+			}
+			continue
+		}
 		quota, err := s.GetLatestQuota(ctx, acc.ID)
 		if err != nil {
 			continue
@@ -424,6 +433,7 @@ func (s *SQLiteStore) GetLatestOllamaUsage(ctx context.Context, accountID string
 	if err != nil {
 		return nil, err
 	}
+	u.ID = u.AccountID + "-" + u.ScrapedAt.Format("20060102150405")
 	_ = json.Unmarshal([]byte(modelsJSON), &u.Models)
 	return u, nil
 }
