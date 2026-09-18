@@ -8,7 +8,7 @@ const statusPageHTML = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OpenCode Go Pool</title>
+<title>CPA Pool Supervise</title>
 <style>
 :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
 body { margin: 0; padding: 24px; background: Canvas; color: CanvasText; }
@@ -29,7 +29,7 @@ button:hover { background: color-mix(in srgb, CanvasText 8%, transparent); }
 </style>
 </head>
 <body>
-<h1>OpenCode Go Pool</h1>
+<h1>CPA Pool Supervise</h1>
 <div class="card">
   <label>CPA Management Key
     <input type="password" id="key" placeholder="management key" autocomplete="off">

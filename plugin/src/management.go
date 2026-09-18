@@ -31,7 +31,7 @@ func handleManagementRegister() ([]byte, error) {
 		Resources: []pluginapi.ResourceRoute{
 			{
 				Path:        "/status",
-				Menu:        "OpenCode Go Pool",
+				Menu:        "CPA Pool Supervise",
 				Description: "Quota and health of the OpenCode Go subscription pool.",
 			},
 		},
