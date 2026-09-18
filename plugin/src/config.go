@@ -285,9 +285,13 @@ func discoverAccounts(cfg settings) ([]*account, string, error) {
 		}
 	}
 
-	// Apply overrides and default names.
+	// Apply overrides and default names. Ollama accounts keep their
+	// provider-derived name (set during discovery); only OpenCode accounts
+	// get the sequential go-N label.
 	for i, acct := range ordered {
-		acct.Name = fmt.Sprintf("go-%d", i+1)
+		if acct.Kind != "ollama" {
+			acct.Name = fmt.Sprintf("go-%d", i+1)
+		}
 		for _, ov := range cfg.Overrides {
 			suffix := strings.TrimSpace(ov.KeySuffix)
 			if suffix == "" || !strings.HasSuffix(acct.apiKey, suffix) {
